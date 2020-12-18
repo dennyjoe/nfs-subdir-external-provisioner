@@ -12,38 +12,9 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-ifeq ($(REGISTRY),)
-        REGISTRY = quay.io/external_storage/
-endif
-ifeq ($(VERSION),)
-        VERSION = latest
-endif
-IMAGE = $(REGISTRY)nfs-subdir-external-provisioner:$(VERSION)
-IMAGE_ARM = $(REGISTRY)nfs-subdir-external-provisioner-arm:$(VERSION) 
-MUTABLE_IMAGE = $(REGISTRY)nfs-subdir-external-provisioner:latest
-MUTABLE_IMAGE_ARM = $(REGISTRY)nfs-subdir-external-provisioner-arm:latest
+CMDS=nfs-subdir-external-provisioner
+all: build
 
-all: build image build_arm image_arm 
+include release-tools/build.make
 
-container: build image build_arm image_arm
-
-build:
-	CGO_ENABLED=0 GOOS=linux go build -a -ldflags '-extldflags "-static"' -o docker/x86_64/nfs-subdir-external-provisioner ./cmd/nfs-subdir-external-provisioner
-
-build_arm:
-	CGO_ENABLED=0 GOOS=linux GOARCH=arm GOARM=7 go build -a -ldflags '-extldflags "-static"' -o docker/arm/nfs-subdir-external-provisioner ./cmd/nfs-subdir-external-provisioner 
-
-image:
-	docker build -t $(MUTABLE_IMAGE) docker/x86_64
-	docker tag $(MUTABLE_IMAGE) $(IMAGE)
-
-image_arm:
-	docker run --rm --privileged multiarch/qemu-user-static:register --reset
-	docker build -t $(MUTABLE_IMAGE_ARM) docker/arm
-	docker tag $(MUTABLE_IMAGE_ARM) $(IMAGE_ARM)
-
-push:
-	docker push $(IMAGE)
-	docker push $(MUTABLE_IMAGE)
-	docker push $(IMAGE_ARM)
-	docker push $(MUTABLE_IMAGE_ARM)
+BUILD_PLATFORMS=linux amd64; linux arm64 -arm64; linux ppc64le -ppc64le; linux s390x -s390x
